@@ -28,26 +28,24 @@ export default function Home() {
     formData.append("target_file", targetFile.current);
 
     try {
-      const response = await fetch("http://localhost:8000/predict/", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setResultData(data);
+      axios.post("http://127.0.0.1:8000/predict/", formData).then(function (response) {
+        setResultData(response.data)
+      })
     } catch (error) {
       console.error("There was a problem with the fetch operation:", error);
     }
   };
+  const handelCancel = () => {
+    document.querySelector('#sourceFileInput').value = '';
+    document.querySelector('#targetFileInput').value = '';
+    
+    sourceFile.current  = null;
+    targetFile.current  = null;
+    setResultData([]);
+  }
 
   useEffect(() => {
-    const options = { method: 'GET', url: 'http://localhost:8000/' };
-
-    axios.request(options).then(function (response) {
+    axios.get("http://localhost:8000/").then(function (response) {
       console.log(response.data);
     }).catch(function (error) {
       console.error(error);
@@ -56,18 +54,18 @@ export default function Home() {
 
   return (
     <>
-      <div className="w-full min-h-dvh overflow-x-hidden">
-        <div className="w-full h-20 xl:h-28 flex justify-center items-center shadow-lg">
-          <h1 className="text-3xl 2md:text-4xl xl:text-5xl font-semibold text-center">
+      <div className="w-full overflow-x-hidden min-h-dvh pb-10">
+        <div className="flex items-center justify-center w-full h-20 shadow-lg xl:h-28">
+          <h1 className="text-3xl font-semibold text-center 2md:text-4xl xl:text-5xl">
             Software Module Defect Identifier
           </h1>
         </div>
         <div className="w-full h-auto md:ml-6">
-          <div className="h-auto min-h-12 w-full mt-4 flex flex-col gap-2 items-center pl-2">
+          <div className="flex flex-col items-center w-full h-auto gap-2 pl-2 mt-4 min-h-12">
             <div className="flex w-full h-auto">
               <label
                 htmlFor="sourceFileInput"
-                className="text-base 2md:text-lg font-semibold min-w-36 2md:min-w-44"
+                className="text-base font-semibold 2md:text-lg min-w-36 2md:min-w-44"
               >
                 Select a source file:
               </label>
@@ -83,7 +81,7 @@ export default function Home() {
             <div className="flex w-full h-auto">
               <label
                 htmlFor="targetFileInput"
-                className="text-base 2md:text-lg font-semibold min-w-36 2md:min-w-44"
+                className="text-base font-semibold 2md:text-lg min-w-36 2md:min-w-44"
               >
                 Select a target file:
               </label>
@@ -97,17 +95,19 @@ export default function Home() {
               />
             </div>
           </div>
-          <button
-            onClick={handleSubmit}
-            className="bg-blue-400 text-base md:text-lg font-semibold mt-4 ml-2 py-0.5 px-2 sm:px-4 rounded-md"
-          >
+          <button onClick={handleSubmit} className="bg-blue-400 text-base md:text-lg font-semibold mt-6 ml-2 py-0.5 px-2 sm:px-4 rounded-md">
             Submit
           </button>
+          <button onClick={handelCancel} className="bg-red-500 text-white text-base md:text-lg font-semibold mt-6 ml-10 py-0.5 px-2 sm:px-4 rounded-md">
+            Cancel
+          </button>
         </div>
-        <div className="w-full h-auto mt-8 sm:mt-10 overflow-hidden">
+
+        {/* start:::output table*/}
+        <div className="w-full h-auto mt-8 overflow-hidden sm:mt-10">
           <div className="w-full h-auto px-2 overflow-x-auto">
-            <table className="border border-slate-500 m-auto">
-              <caption className="caption-top font-semibold text-xl 2md:text-2xl pb-2">
+            <table className="m-auto border border-slate-500">
+              <caption className="pb-2 text-xl font-semibold caption-top 2md:text-2xl">
                 Software Files Status
               </caption>
               <thead className="text-base sm:text-lg">
@@ -123,8 +123,8 @@ export default function Home() {
                     <tr key={index} className="odd:bg-gray-300">
                       <td className="">{index + 1}</td>
                       <td className="">{result.name}</td>
-                      <td className={`text-white ${result.bug_prediction ? 'bg-red-400' : 'bg-green-400'}`}>
-                        {result.bug_prediction ? 'Defected' : 'Good'}
+                      <td className={`text-white ${result.bug ? 'bg-red-400' : 'bg-green-400'}`}>
+                        {result.bug ? 'Defected' : 'Good'}
                       </td>
                     </tr>
                   ))
@@ -135,6 +135,7 @@ export default function Home() {
             </table>
           </div>
         </div>
+        {/* end:::output table*/}
       </div>
     </>
   );
