@@ -1,10 +1,11 @@
+import numpy as np
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
-import numpy as np
 from scipy.linalg import sqrtm
+
 
 app = FastAPI()
 
@@ -65,3 +66,4 @@ async def predict(source_file: UploadFile = File(...), target_file: UploadFile =
     # Convert the result to a dictionary
     result = target_df[["name", "bug"]].to_dict(orient="records")
     return result
+
