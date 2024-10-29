@@ -1,0 +1,1 @@
+C:.......backend> uvicorn app/main:app --reload
