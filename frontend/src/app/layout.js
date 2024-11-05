@@ -19,7 +19,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${roboto.className} font-sans max-w-screen-maxW m-auto box-border bg-[#F7F7F7]`}>
+      <body className={`${roboto.className} font-sans max-w-screen-maxW m-auto box-border bg-gradient-to-r from-[#fbdafc] to-[#b9edf9]`}>
         {children}
       </body>
     </html>

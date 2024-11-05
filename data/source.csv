@@ -1,0 +1,6 @@
+name,wmc,dit,noc,cbo,rfc,lcom,ca,ce,npm,lcom3,loc,dam,moa,mfa,cam,ic,cbm,amc,max_cc,avg_cc,bug
+org.apache.tools.zip.ZipExtraField,6,1,0,8,6,15,7,1,6,2,6,0,0,0,0.444444444,0,0,0,1,1,0
+org.apache.tools.ant.types.resources.comparators.FileSystem,3,4,0,5,11,1,1,4,1,0.5,41,1,1,0.971428571,0.75,1,2,12.33333333,3,1,1
+org.apache.tools.ant.taskdefs.condition.TypeFound,5,2,0,7,14,6,0,7,4,0.625,70,1,0,0.692307692,0.8,0,0,12.6,4,1.4,0
+org.apache.tools.ant.taskdefs.optional.perforce.P4OutputHandler,1,1,0,1,1,0,0,1,1,2,1,0,0,0,1,0,0,0,1,1,0
+org.apache.tools.ant.taskdefs.email.Message,11,2,0,7,26,0,5,2,11,0.58,181,1,0,0.529411765,0.409090909,0,0,15,1,0.7273,0
