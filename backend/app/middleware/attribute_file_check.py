@@ -42,6 +42,30 @@ def filter_numeric_columns(df):
     return df
 
 
+async def validate_attributes_and_source_code_files(request: Request, source_file: UploadFile = File(...), target_file: UploadFile = File(...)):
+    # Check file types
+    valid_extensions = {".csv", ".xls", ".xlsx"}
+    source_ext = source_file.filename.split('.')[-1].lower()
+    target_ext = target_file.filename.split('.')[-1].lower()
+
+    if f".{source_ext}" not in valid_extensions:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only .csv, .xls, .xlsx are allowed for source attribute file.")
+    if f".{target_ext}" != ".zip":
+        raise HTTPException(status_code=400, detail="Invalid file type. Only .zip is allowed for source code.")
+    
+    # If validation passes, read and convert files to DataFrames
+    if source_ext == "csv":
+        source_df = pd.read_csv(source_file.file)
+    else:
+        source_df = pd.read_excel(source_file.file)
+        
+    source_df = filter_numeric_columns(filter_last_column(source_df))
+    
+    return source_df, target_file
+
+
+
+
 async def validate_attributes_files(request: Request, source_file: UploadFile = File(...), target_file: UploadFile = File(...)):
     # Check file types
     valid_extensions = {".csv", ".xls", ".xlsx"}

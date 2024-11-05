@@ -243,8 +243,8 @@ export default function Page() {
             </div>
 
             <div className="w-full h-8 2md:h-10 flex gap-5 2md:gap-10 *:flex *:justify-center *:items-center *:rounded-md text-base font-bold text-white">
-              <div className="w-36 2md:w-40 h-full bg-[#ff2752]">Cancel</div>
-              <div className="w-36 2md:w-40 h-full bg-blue-600">
+              <button onClick={handelCancel} className="w-36 2md:w-40 h-full bg-[#ff2752]">Cancel</button>
+              <button onClick={handleSubmit} className="w-36 2md:w-40 h-full bg-blue-600">
                 Submit
                 {/* {<>
                   <svg aria-hidden="true" className="h-1/2 aspect-square animate-spin text-gray-400 fill-white" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -253,7 +253,7 @@ export default function Page() {
                   </svg>
                   <span class="ml-2">Loading....</span>
                 </>} */}
-              </div>
+              </button>
             </div>
           </div>
         }
