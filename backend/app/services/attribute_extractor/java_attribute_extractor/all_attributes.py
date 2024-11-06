@@ -61,7 +61,18 @@ def getAttributes(java_code, relative_file_path):
         allAttributes["loc_total"] = locMetrics.get_loc_total()        
 
     except javalang.parser.JavaSyntaxError as e:
-        # Handle Java syntax errors
-        print("The Java code has compiletime error!!!!")
+        print("The Java code has a syntax error:", str(e))
+
+    except AttributeError as e:
+        print("Attribute error encountered:", str(e))
+
+    except TypeError as e:
+        print("Type error encountered:", str(e))
+
+    except KeyError as e:
+        print("Key error encountered:", str(e))
+
+    except Exception as e:
+        print("An unexpected error occurred:", str(e))
 
     return allAttributes
