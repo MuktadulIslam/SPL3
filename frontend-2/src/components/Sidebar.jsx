@@ -91,7 +91,7 @@ export default function Sidebar() {
 
     return (<>
         <div className={`w-full h-full bg-gradient-to-b from-black to-[#003760]`}>
-            <div className="w-full h-full flex flex-col gap-2 px-2.5 lg:py-4">
+            <div className="w-full h-full flex flex-col gap-2 px-2.5 pb-2 lg:pt-4">
                 <div className="w-full h-[3.5rem] sm:h-16 flex flex-row items-center justify-start gap-1 mb-3">
                     <div className="h-9 sm:h-10 aspect-square">
                         <img src="/icon.png" alt="" className="w-full h-full" />

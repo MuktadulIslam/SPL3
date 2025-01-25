@@ -59,6 +59,7 @@ export default function Page() {
 
   const { mutate, isLoading, isError, data, error } = useMutation(fetchPredictionData, {
     onSuccess: (data) => {
+      console.log(data.data)
       setResponseData(data.data);
       setResponseDataHeader(data.data_header);
       setMethodName(data.method_name);
