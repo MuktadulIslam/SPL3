@@ -16,7 +16,7 @@ module.exports = {
       lg: "1200px",
       xl: "1400px",
       "2xl": "1600px",
-      maxW: "1800px",
+      maxW: "2800px",
       "max-sm": { max: "559px" },
       "max-md": { max: "799px" },
       "max-2md": { max: "999px" },
@@ -29,6 +29,11 @@ module.exports = {
       "2md-lg": { min: "1000px", max: "1199px" },
       "lg-xl": { min: "1200px", max: "1399px" },
       "xl-2xl": { min: "1400px", max: "1700px" },
+    },
+    extend: {
+      boxShadow: {
+        "box-shadow": "0px 0px 10px 0px rgba(0,255,206,0.5)",
+      }
     }
   },
   plugins: [],
