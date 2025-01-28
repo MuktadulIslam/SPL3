@@ -1,6 +1,7 @@
 import os
 
 from .java_attribute_extractor.all_attributes import getAttributes as getJavaDefectAttributes
+from .java_attribute_extractor.all_attributes import getProvidedAttributesForJava
 
 def get_acceptable_file_path(directory):
     java_files = []
@@ -25,5 +26,8 @@ def getDefectAttributes(directory_path):
         finally:
             pass
     return attributes_data
-    
+
+
+def getProvidedAttributes():
+    return getProvidedAttributesForJava()
     

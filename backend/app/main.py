@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .routes import prediction_routers
+from .services.attribute_extractor import getProvidedAttributes
 
 app = FastAPI(title=settings.app_name, version=settings.version)
 app = FastAPI()
@@ -33,3 +34,8 @@ async def get_settings():
         "api_prefix": settings.api_prefix,
     }
 
+@app.get("/provided-attributes")
+async def get_settings():
+    return {
+        "attributes": getProvidedAttributes()
+    }

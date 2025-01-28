@@ -20,7 +20,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${roboto.className} font-sans h-dvh max-w-screen-maxW m-auto box-border text-[#e3f1f9]`}>
+      <body className={`${roboto.className} font-sans relative h-dvh max-w-screen-maxW m-auto box-border text-[#e3f1f9]`}>
         <AppBackground>{children}</AppBackground>
       </body>
     </html>

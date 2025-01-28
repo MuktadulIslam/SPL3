@@ -2,7 +2,20 @@
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Lobster, Rubik_Vinyl } from "next/font/google";
 import Sidebar from "@/components/Sidebar";
-import { useState } from 'react';
+import { myApp } from "./firebase.config";
+import { useEffect, useState, createContext } from "react";
+import {
+    GoogleAuthProvider,
+    getAuth,
+    onAuthStateChanged,
+    signInWithPopup,
+    signOut
+} from "firebase/auth";
+
+const auth = getAuth(myApp);
+const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope("profile");
+googleProvider.addScope("email");
 
 const queryClient = new QueryClient();
 const rubik_vinyl = Rubik_Vinyl({
@@ -16,8 +29,11 @@ const lobster = Lobster({
     subsets: ["latin"]
 })
 
+export const UserContext = createContext();
+
 export default function AppBackground({ children }) {
     const [sidebarOpenStatas, setSidebarOpenStatas] = useState(false);
+    const [user, setUser] = useState(null);
 
     const hideSidebar = () => {
         const sidebar = document.getElementById('sidebar');
@@ -42,15 +58,67 @@ export default function AppBackground({ children }) {
         setSidebarOpenStatas(false);
     }
 
+    // For  user authentication
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (currentUser) {
+                setUser({
+                    name: currentUser.displayName,
+                    email: currentUser.email,
+                    photoURL: currentUser.photoURL,
+                    uid: currentUser.uid
+                });
+            } else {
+                setUser(null);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const logInWithGoogle = async () => {
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            await result.user.reload(); // Reload the user to ensure up-to-date data
+            const updatedUser = auth.currentUser;
+            setUser({
+                name: updatedUser.displayName,
+                email: updatedUser.email,
+                photoURL: updatedUser.photoURL,
+                uid: updatedUser.uid
+            });
+        } catch (error) {
+            console.error("Login failed:", error.message);
+        }
+    };
+
+    const logOut = async () => {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Logout failed:", error.message);
+        }
+    };
+
     return (
         <QueryClientProvider client={queryClient}>
-            <div className="w-full h-dvh flex flex-row bg-[#111827] text-[#e3f1f9]">
-                <div id="sidebar" className={`w-0 h-screen lg:w-1/3 max-w-[310px] transition-all duration-300 max-lg:fixed z-50 overflow-hidden`}>
-                    <Sidebar />
+            {user == null &&
+                <div className="w-full h-screen absolute top-0 left-0 z-50 flex justify-center items-center">
+                    <div className="bg-gray-100 opacity-60 absolute w-full h-full -z-10"></div>
+                    <button onClick={() => logInWithGoogle()} className="w-36 sm:w-48 aspect-square flex justify-center items-center bg-white rounded-full overflow-hidden">
+                        <img
+                            src="login.gif" alt="Login"
+                            className='w-5/6 aspect-square -translate-x-1'
+                        />
+                    </button>
                 </div>
-                <div onClick={() => hideHistryBar()} className="w-2/3 flex-1 h-full overflow-y-auto">
+            }
 
-                    <div onClick={() => hideHistryBar()}>
+            <UserContext.Provider value={{ user, logOut }}>
+                <div className="w-full h-dvh flex flex-row bg-[#111827] text-[#e3f1f9]">
+                    <div id="sidebar" className={`w-0 h-screen lg:w-1/3 max-w-[310px] transition-all duration-300 max-lg:fixed z-40 overflow-hidden`}>
+                        <Sidebar />
+                    </div>
+                    <div onClick={() => hideHistryBar()} className="w-2/3 flex-1 h-full overflow-y-auto pb-6 sm:pb-10">
                         <div>
                             <div className="lg:hidden w-full h-[3.5rem] sm:h-16 flex items-center justify-between px-2 bg-gradient-to-r from-black to-[#003760]">
                                 <div className="w-full h-full flex items-center justify-start gap-1">
@@ -96,7 +164,7 @@ export default function AppBackground({ children }) {
                         </div>
                     </div>
                 </div>
-            </div>
+            </UserContext.Provider>
         </QueryClientProvider>
     );
 }
