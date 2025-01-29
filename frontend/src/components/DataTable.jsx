@@ -29,7 +29,7 @@ export default function DataTable({ attributesData, attributesDataHeader }) {
                         <td key={index2}
                         className={`lg-py-1 px-2 w-full h-full text-center font-semibold ${index2 === attributesDataHeader.length - 1 ? 'sticky right-0 bg-white' : ''}`}
                           style={{ backgroundColor: cellValue === 1 ? "#fb2984db" : "#00d493", color: cellValue === 1 ? "white" : "black" }}>
-                          {cellValue === 1 ? "Defected" : "Good"}
+                          {cellValue === 1 ? "Defective" : "Good"}
                         </td>
                       );
                     } else {

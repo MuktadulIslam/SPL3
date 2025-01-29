@@ -9,7 +9,7 @@ def getProvidedAttributesForJava():
     return [
         { 'short_names': ['name', 'files', 'file', 'file_name', 'files_name'], 'id_name': 'file_name', 'display_name': 'File Name' },
 
-        { 'short_names': ['uniq_Op', 'total_operators'], 'id_name': 'unique_operators', 'display_name': 'Halstead Unique Operators' },
+        { 'short_names': ['uniq_Op', 'unique_operators'], 'id_name': 'unique_operators', 'display_name': 'Halstead Unique Operators' },
         { 'short_names': ['uniq_Opnd', 'unique_operands'], 'id_name': 'unique_operands', 'display_name': 'Halstead Unique Operands' },
         { 'short_names': ['total_Op', 'total_operators', 'num_operators'], 'id_name': 'total_operators', 'display_name': 'Halstead Total Operators' },
         { 'short_names': ['total_Opnd', 'total_operands', 'num_operands'], 'id_name': 'total_operands', 'display_name': 'Halstead Total Operands' },
@@ -23,12 +23,14 @@ def getProvidedAttributesForJava():
         { 'short_names': ['delivered_bug', 'halstead_delivered_bug'], 'id_name': 'halstead_delivered_bug', 'display_name': 'Halstead Delivered Bug' },
         { 'short_names': ['halstead_prog_time', 'halstead_time', 'programming_time'], 'id_name': 'halstead_time', 'display_name': 'Halstead Programming Time' },
         
-        { 'short_names': ['line_of_code', 'loc', 'num_line', 'number_of_line'], 'id_name': 'number_of_lines', 'display_name': 'Number of Line' },
-        { 'short_names': ['loc_executable', 'executable_loc'], 'id_name': 'loc_executable', 'display_name': 'Total Line of executable Code' },
-        { 'short_names': ['loc_comment', 'loc_comments', 'comment_loc', 'comments_loc'], 'id_name': 'loc_comments', 'display_name': 'Total Line of Comment' },
-        { 'short_names': ['loc_code_and_comments', 'loc_code_and_comment', 'loc_code_with_comment', 'loc_code_with_comments'], 'id_name': 'loc_code_and_comments', 'display_name': 'Total Line of Code with Comment' },
-        { 'short_names': ['loc_blank', 'loc_blanks', 'blank_loc', 'blanks_loc'], 'id_name': 'loc_blank', 'display_name': 'Total Blank Line' },
-        { 'short_names': ['total_loc', 'loc_total'], 'id_name': 'loc_total', 'display_name': 'Total Line of Code' },
+        { 'short_names': ['line_of_code', 'num_line', 'number_of_line'], 'id_name': 'number_of_lines', 'display_name': 'Number of Line' },
+        { 'short_names': ['loc_executable', 'executable_loc'], 'id_name': 'executable_loc', 'display_name': 'Total Line of executable Code' },
+        { 'short_names': ['loc_comment', 'loc_comments', 'comment_loc', 'comments_loc'], 'id_name': 'comment_loc', 'display_name': 'Total Line of Comment' },
+        { 'short_names': ['loc_code_and_comments', 'loc_code_and_comment', 'loc_code_with_comment', 'loc_code_with_comments', 'code_and_comment_loc'], 'id_name': 'code_and_comment_loc', 'display_name': 'Total Line of Code with Comment' },
+        { 'short_names': ['loc_blank', 'loc_blanks', 'blank_loc', 'blanks_loc'], 'id_name': 'blank_loc', 'display_name': 'Total Blank Line' },
+        { 'short_names': ['total_loc', 'loc_total','loc'], 'id_name': 'total_loc', 'display_name': 'Total Line of Code' },
+        
+        { 'short_names': ['bug', 'defect', 'defects', 'bug_prediction'], 'id_name': 'bug', 'display_name': 'Bug/Defected' },
     ]
 
 
@@ -53,11 +55,11 @@ def getAttributes(java_code, relative_file_path):
 
         # LOCMetrics
         "number_of_lines": -1,
-        "loc_executable": -1, 
-        "loc_comments": -1,
-        "loc_code_and_comments": -1,
-        "loc_blank": -1,
-        "loc_total": -1
+        "executable_loc": -1, 
+        "comment_loc": -1,
+        "code_and_comment_loc": -1,
+        "blank_loc": -1,
+        "total_loc": -1
     }
 
     try:
@@ -80,11 +82,11 @@ def getAttributes(java_code, relative_file_path):
         allAttributes["halstead_time"] = halsteadMetrics.get_programming_time()
         
         allAttributes["number_of_lines"] = locMetrics.get_number_of_lines()
-        allAttributes["loc_executable"] = locMetrics.get_loc_executable()
-        allAttributes["loc_comments"] = locMetrics.get_loc_comments()
-        allAttributes["loc_code_and_comments"] = locMetrics.get_loc_code_with_comments()
-        allAttributes["loc_blank"] = locMetrics.get_loc_blank()
-        allAttributes["loc_total"] = locMetrics.get_loc_total()        
+        allAttributes["executable_loc"] = locMetrics.get_loc_executable()
+        allAttributes["comment_loc"] = locMetrics.get_loc_comments()
+        allAttributes["code_and_comment_loc"] = locMetrics.get_loc_code_with_comments()
+        allAttributes["blank_loc"] = locMetrics.get_loc_blank()
+        allAttributes["total_loc"] = locMetrics.get_loc_total()        
 
     except javalang.parser.JavaSyntaxError as e:
         print("The Java code has a syntax error:", str(e))

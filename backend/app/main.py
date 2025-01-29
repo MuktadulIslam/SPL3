@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .routes import prediction_routers
 from .services.attribute_extractor import getProvidedAttributes
+from .database.mongobd import MongoDBHandler
 
 app = FastAPI(title=settings.app_name, version=settings.version)
 app = FastAPI()
@@ -21,7 +22,13 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the FastAPI application!"}
+    return {"message": "Welcome to the DefectLens application!"}
+
+@app.get("/user_projects")
+async def root():
+    mongoDBHandler = MongoDBHandler()
+    return {"history": list(mongoDBHandler.get_user_projects(user_id="muktadulislam142001@gmail.com"))}
+
 
 @app.get("/settings")
 async def get_settings():

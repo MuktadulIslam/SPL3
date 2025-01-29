@@ -1,6 +1,6 @@
 "use client"
 import { Acme } from "next/font/google";
-import { useRef, useState, useContext, use } from "react";
+import { useRef, useState, useContext} from "react";
 import axios from 'axios';
 import { useMutation } from 'react-query';
 import * as XLSX from 'xlsx';
@@ -29,7 +29,7 @@ const getCurrentFormatDate = () => {
 };
 
 const fileToString = (file) => {
-	if(file == null) return "";
+	if (file == null) return "";
 
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader();
@@ -54,6 +54,19 @@ const calculateHash = async (file1, file2) => {
 	}
 };
 
+const getIdNameMapping = (headerMapping) => {
+	const mapping = {};
+
+	Object.values(headerMapping).forEach(value => {
+		value.short_names.forEach(shortName => {
+			mapping[shortName] = value.id_name;
+		});
+	});
+
+	return mapping;
+};
+
+
 // Mutation function with cancellation token
 const fetchPredictionData = async ({ formData, endPoint, cancelToken }) => {
 	const response = await axios.post(`http://127.0.0.1:8000/${endPoint}`, formData, {
@@ -63,11 +76,83 @@ const fetchPredictionData = async ({ formData, endPoint, cancelToken }) => {
 };
 
 
+const keepOnlySpecifiedColumns = (data, mappedSourceFileHeaders) => {
+	return data.map(row => {
+		const newRow = {};
+		Object.entries(mappedSourceFileHeaders).forEach(([oldKey, newKey]) => {
+			if (row.hasOwnProperty(oldKey)) {
+				newRow[newKey.id_name] = row[oldKey];
+			}
+		});
+		return newRow;
+	});
+};
+
+const processSourceFile = async (fileRef, mappedSourceFileHeaders) => {
+	const fileExtension = fileRef.current.name.split('.').pop().toLowerCase();
+
+	if (fileExtension === 'csv') {
+		const originalFile = fileRef.current;
+
+		const processedData = await new Promise((resolve, reject) => {
+			Papa.parse(fileRef.current, {
+				complete: (results) => {
+					if (results.data.length > 0) {
+						const processedRows = keepOnlySpecifiedColumns(results.data, mappedSourceFileHeaders);
+						const csv = Papa.unparse(processedRows);
+						const processedFile = new File(
+							[csv],
+							originalFile.name,
+							{ type: 'text/csv' }
+						);
+						resolve(processedFile);
+					} else {
+						reject(new Error('No data found'));
+					}
+				},
+				header: true,
+				skipEmptyLines: true,
+				error: (error) => reject(error)
+			});
+		});
+
+		fileRef.current = processedData;
+
+	} else if (['xlsx', 'xls'].includes(fileExtension)) {
+		const data = await fileRef.current.arrayBuffer();
+		const workbook = XLSX.read(data, { type: 'array' });
+		const firstSheetName = workbook.SheetNames[0];
+		const worksheet = workbook.Sheets[firstSheetName];
+
+		// Convert to JSON to use the same processing logic as CSV
+		let jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+		// Process the data using the same function as CSV
+		const processedRows = keepOnlySpecifiedColumns(jsonData);
+
+		// Create new workbook with processed data
+		const newWorkbook = XLSX.utils.book_new();
+		const newWorksheet = XLSX.utils.json_to_sheet(processedRows);
+		XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, firstSheetName);
+
+		// Convert back to file
+		const processedBuffer = XLSX.write(newWorkbook, { type: 'array' });
+		const processedFile = new File(
+			[processedBuffer],
+			fileRef.current.name,
+			{ type: fileRef.current.type }
+		);
+
+		fileRef.current = processedFile;
+	}
+};
+
+
 export default function Background() {
-	const { user } = useContext(UserContext);
+	const { user, reloadSideBarFunction } = useContext(UserContext);
 
 	const PREDICTION_BY_COURCE_CODE = "predictionBySourceCode";
-	const PREDICTION_BY_COURCE_CODE_WITH_TRAINING_FILE = "predictionBySourceCodeWithTrainingFile";
+	const PREDICTION_BY_SOURCE_CODE_WITH_TRAINING_FILE = "predictionBySourceCodeWithTrainingFile";
 	const PREDICTION_BY_ATTRIBUTES = "predictionByattributes";
 	const PREDICTION_BY_ATTRIBUTES_WITH_TRAINING_FILE = "predictionByattributesWithTrainingFile";
 	const PREDICTION_TO_CHECK_ACCURACY = "predictionToCheckAccuracy";
@@ -78,6 +163,7 @@ export default function Background() {
 	const sourceFileInputRef = useRef(null);
 	const targetFileInputRef = useRef(null);
 	const [sourceFileHeaders, setSourceFileHeaders] = useState(null)
+	const [mappedSourceFileHeaders, setMappedSourceFileHeaders] = useState({})
 
 	const [responseData, setResponseData] = useState(null);
 	const [responseDataHeader, setResponseDataHeader] = useState(null);
@@ -91,6 +177,7 @@ export default function Background() {
 		sourceFile.current = null;
 		targetFile.current = null;
 		setSourceFileHeaders(null)
+		setMappedSourceFileHeaders({})
 	}
 
 	const resetResponseData = () => {
@@ -100,18 +187,7 @@ export default function Background() {
 		setMethodAccuracy(null)
 	}
 
-	const handleTargetFileInputChange = async (event) => {
-		event.preventDefault();
-		targetFile.current = event.target.files[0];
-	};
-
-	const handleSourceFileInputChange = async (event) => {
-		event.preventDefault();
-		const file = event.target.files[0];
-		if (!file) return;
-
-		sourceFile.current = event.target.files[0];
-
+	const setMappingData = async(file) => {
 		try {
 			const fileExtension = file.name.split('.').pop().toLowerCase();
 
@@ -121,7 +197,6 @@ export default function Background() {
 				Papa.parse(text, {
 					header: true,
 					complete: (results) => {
-						console.log('CSV Headers:', results.meta.fields);
 						setSourceFileHeaders(results.meta.fields)
 					},
 					error: (error) => {
@@ -141,13 +216,27 @@ export default function Background() {
 				const firstSheetName = workbook.SheetNames[0];
 				const worksheet = workbook.Sheets[firstSheetName];
 				const headers = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0];
-
-				console.log('Excel Headers:', headers);
 				setSourceFileHeaders(headers)
 			}
 		} catch (error) {
 			console.error('Error reading file:', error);
 		}
+	}
+
+	const handleTargetFileInputChange = async (event) => {
+		event.preventDefault();
+		const file = event.target.files[0];
+		if (!file) return;
+		targetFile.current = event.target.files[0];
+		if(selectedOption == PREDICTION_BY_ATTRIBUTES) await setMappingData(file)
+	};
+
+	const handleSourceFileInputChange = async (event) => {
+		event.preventDefault();
+		const file = event.target.files[0];
+		if (!file) return;
+		sourceFile.current = event.target.files[0];
+		if(selectedOption == PREDICTION_BY_SOURCE_CODE_WITH_TRAINING_FILE) await setMappingData(file)
 	};
 
 	const { mutate, isLoading, isError, data, error } = useMutation(fetchPredictionData, {
@@ -156,6 +245,8 @@ export default function Background() {
 			setResponseDataHeader(data.data_header);
 			setMethodName(data.method_name);
 			setMethodAccuracy(data.accuracy);
+			resetInputData();
+			reloadSideBarFunction((val)=>val+1)
 		},
 		onError: (error) => {
 			if (error.response) {
@@ -168,39 +259,44 @@ export default function Background() {
 		}
 	});
 
+
+
 	const handleSubmit = async (event) => {
 		event.preventDefault();
-		resetResponseData()
+		resetResponseData();
 		const formData = new FormData();
 		if (targetFile.current == null) {
 			alert("First Upload the targeted(source code/data) dataset");
 			return;
 		}
 		else {
+			if (selectedOption === PREDICTION_BY_ATTRIBUTES) await processSourceFile(targetFile, mappedSourceFileHeaders);
 			formData.append("target_file", targetFile.current);
 		}
-		if ((selectedOption === PREDICTION_BY_ATTRIBUTES_WITH_TRAINING_FILE ||
-			selectedOption === PREDICTION_BY_COURCE_CODE_WITH_TRAINING_FILE ||
-			selectedOption === PREDICTION_TO_CHECK_ACCURACY
-		) && sourceFile.current == null) {
-			alert("First Upload the training(source) dataset");
-			return;
-		}
-		else {
-			formData.append("source_file", sourceFile.current);
-			setSourceFileHeaders(null)
+		if (selectedOption === PREDICTION_BY_ATTRIBUTES_WITH_TRAINING_FILE ||
+			selectedOption === PREDICTION_BY_SOURCE_CODE_WITH_TRAINING_FILE ||
+			selectedOption === PREDICTION_TO_CHECK_ACCURACY) {
+			if (sourceFile.current == null) {
+				alert("First Upload the training(source) dataset");
+				return;
+			}
+			else {
+				if (selectedOption === PREDICTION_BY_SOURCE_CODE_WITH_TRAINING_FILE) await processSourceFile(sourceFile, mappedSourceFileHeaders);
+				formData.append("source_file", sourceFile.current);
+				setSourceFileHeaders(null)
+			}
 		}
 
 		// Adding More Information
 		formData.append("user_id", user.email);
 		formData.append("submitted_at", getCurrentFormatDate());
-		formData.append("project_name", targetFile.current.name);
+		formData.append("project_name", targetFile.current.name.split(".")[0]);
 		formData.append("project_type", selectedOption);
-		formData.append("project_hash", await calculateHash(targetFile.current, null));
+		formData.append("project_hash", await calculateHash(targetFile.current, sourceFile.current));
 
 		let endPoint = null;
 		if (selectedOption === PREDICTION_BY_COURCE_CODE) endPoint = "api/predict/from-source-code";
-		else if (selectedOption === PREDICTION_BY_COURCE_CODE_WITH_TRAINING_FILE) endPoint = "api/predict/from-source-code-with-training-data";
+		else if (selectedOption === PREDICTION_BY_SOURCE_CODE_WITH_TRAINING_FILE) endPoint = "api/predict/from-source-code-with-training-data";
 		else if (selectedOption === PREDICTION_BY_ATTRIBUTES) endPoint = "api/predict/from-attributes";
 		else if (selectedOption === PREDICTION_BY_ATTRIBUTES_WITH_TRAINING_FILE) endPoint = "api/predict/from-attributes-with-training-data";
 		else if (selectedOption === PREDICTION_TO_CHECK_ACCURACY) endPoint = "api/predict/check-accuracy";
@@ -223,6 +319,8 @@ export default function Background() {
 	const handleOptionChange = (event) => {
 		setSelectedOption(event.target.value);
 		resetInputData()
+		resetResponseData()
+		setMappedSourceFileHeaders({});
 	};
 
 	const downloadResult = () => {
@@ -269,8 +367,8 @@ export default function Background() {
 						<input
 							type="radio"
 							name="predictionType"
-							value={PREDICTION_BY_COURCE_CODE_WITH_TRAINING_FILE}
-							checked={selectedOption === PREDICTION_BY_COURCE_CODE_WITH_TRAINING_FILE}
+							value={PREDICTION_BY_SOURCE_CODE_WITH_TRAINING_FILE}
+							checked={selectedOption === PREDICTION_BY_SOURCE_CODE_WITH_TRAINING_FILE}
 							onChange={handleOptionChange}
 							className="mr-2 text-blue-500 focus:ring-blue-500 w-3.5 md:w-4 aspect-square"
 						/>
@@ -322,7 +420,7 @@ export default function Background() {
 					<div className="h-auto w-full text-xl 2md:text-2xl font-bold mb-4 2md:mb-5">
 						<p className={`${acme.className} text-lg md:text-xl xl:text-2xl text-[#91b9fd] w-auto`}>Upload Files</p>
 						<div className="text-xs md:text-sm xl:text-base sm:flex sm:flex-row gap-2">
-							<p>{"For Source File/Code: .zip]"}</p>
+							<p>{"[For Source File/Code: .zip]"}</p>
 						</div>
 					</div>
 
@@ -370,13 +468,16 @@ export default function Background() {
 			{/* end:::Predict From Source Code */}
 
 			{/* start:::Predict From Source Code With Training File */}
-			{selectedOption === PREDICTION_BY_COURCE_CODE_WITH_TRAINING_FILE &&
+			{selectedOption === PREDICTION_BY_SOURCE_CODE_WITH_TRAINING_FILE &&
 				<div className="w-full h-auto px-2 py-3 2md:px-4 2md:py-6 bg-transparent border md:border-2 border-[#374151] rounded-lg 2md:rounded-xl hover:border-[#00ffce] hover:shadow-box-shadow">
 					<div className="h-auto w-full text-xl 2md:text-2xl font-bold mb-4 2md:mb-5">
 						<p className={`${acme.className} text-lg md:text-xl xl:text-2xl text-[#91b9fd] w-auto`}>Upload Files</p>
+						<div className="text-xs md:text-sm xl:text-base">
+							{"[Source File should be Labeled with `bug` attribute with {0,1}]"}
+						</div>
 						<div className="text-xs md:text-sm xl:text-base sm:flex sm:flex-row gap-2">
-							<p>{"[For Labeled(last-col) Source File: .csv/.xls/.xlsx"}</p>
-							<p>{"& For Target File/Code: .zip]"}</p>
+							<p>{"[For Source File: .csv/.xls/.xlsx"}</p>
+							<p>{"& Target File/Code: .zip]"}</p>
 						</div>
 					</div>
 
@@ -446,8 +547,7 @@ export default function Background() {
 					<div className="h-auto w-full text-xl 2md:text-2xl font-bold mb-4 2md:mb-5">
 						<p className={`${acme.className} text-lg md:text-xl xl:text-2xl text-[#91b9fd] w-auto`}>Upload Files</p>
 						<div className="text-xs md:text-sm xl:text-base sm:flex sm:flex-row gap-2">
-							<p>{"[For Labeled(last-col) Source File: .csv/.xls/.xlsx"}</p>
-							<p>{"& For Target File/Code: .csv/.xls/.xlsx]"}</p>
+							<p>{"[Source Attribut File: .csv/.xls/.xlsx"}</p>
 						</div>
 					</div>
 
@@ -465,8 +565,8 @@ export default function Background() {
 								className="text-xs md:text-sm xl:text-base w-auto"
 								placeholder="Choose File"
 								accept=".csv, .xls, .xlsx"
-								ref={sourceFileInputRef}
-								onChange={handleSourceFileInputChange}
+								ref={targetFileInputRef}
+								onChange={handleTargetFileInputChange}
 							/>
 						</div>
 					</div>
@@ -498,9 +598,11 @@ export default function Background() {
 				<div className="w-full h-auto px-2 py-3 2md:px-4 2md:py-6 bg-transparent border md:border-2 border-[#374151] rounded-lg 2md:rounded-xl hover:border-[#00ffce] hover:shadow-box-shadow">
 					<div className="h-auto w-full text-xl 2md:text-2xl font-bold mb-4 2md:mb-5">
 						<p className={`${acme.className} text-lg md:text-xl xl:text-2xl text-[#91b9fd] w-auto`}>Upload Files</p>
+						<div className="text-xs md:text-sm xl:text-base">
+							{"[Source File should be Labeled with `bug` attribute with {0,1}]"}
+						</div>
 						<div className="text-xs md:text-sm xl:text-base sm:flex sm:flex-row gap-2">
-							<p>{"[For Labeled(last-col) Source File: .csv/.xls/.xlsx"}</p>
-							<p>{"& For Target File/Code: .csv/.xls/.xlsx]"}</p>
+							<p>{"[For Source & Target File: .csv/.xls/.xlsx"}</p>
 						</div>
 					</div>
 
@@ -569,8 +671,11 @@ export default function Background() {
 				<div className="w-full h-auto px-2 py-3 2md:px-4 2md:py-6 bg-transparent border md:border-2 border-[#374151] rounded-lg 2md:rounded-xl hover:border-[#00ffce] hover:shadow-box-shadow">
 					<div className="h-auto w-full text-xl 2md:text-2xl font-bold mb-4 2md:mb-5">
 						<p className={`${acme.className} text-lg md:text-xl xl:text-2xl text-[#91b9fd] w-auto`}>Upload Files</p>
+						<div className="text-xs md:text-sm xl:text-base">
+							{"[Both File should be Labeled with `bug` attribute with {0,1}]"}
+						</div>
 						<div className="text-xs md:text-sm xl:text-base sm:flex sm:flex-row gap-2">
-							<p>{"[For Labeled(last-col) Source File or Target File: .csv/.xls/.xlsx]"}</p>
+							<p>{"[For Source & Target File: .csv/.xls/.xlsx"}</p>
 						</div>
 					</div>
 
@@ -637,7 +742,7 @@ export default function Background() {
 			{/* start:::Attribute Selection */}
 			{sourceFileHeaders &&
 				<div className="w-full h-auto px-2 py-3 2md:px-4 lg:py-4 bg-transparent border md:border-2 border-[#374151] rounded-lg 2md:rounded-xl">
-					<MappingInterface headers={sourceFileHeaders} />
+					<MappingInterface headers={sourceFileHeaders} setMappedSourceFileHeaders={setMappedSourceFileHeaders} mappedSourceFileHeaders={mappedSourceFileHeaders} />
 				</div>
 			}
 			{/* end:::Attribute Selection */}

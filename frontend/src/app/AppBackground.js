@@ -34,6 +34,7 @@ export const UserContext = createContext();
 export default function AppBackground({ children }) {
     const [sidebarOpenStatas, setSidebarOpenStatas] = useState(false);
     const [user, setUser] = useState(null);
+    const [reloadSideBar, reloadSideBarFunction] = useState(1);
 
     const hideSidebar = () => {
         const sidebar = document.getElementById('sidebar');
@@ -113,7 +114,7 @@ export default function AppBackground({ children }) {
                 </div>
             }
 
-            <UserContext.Provider value={{ user, logOut }}>
+            <UserContext.Provider value={{ user, logOut, reloadSideBar, reloadSideBarFunction }}>
                 <div className="w-full h-dvh flex flex-row bg-[#111827] text-[#e3f1f9]">
                     <div id="sidebar" className={`w-0 h-screen lg:w-1/3 max-w-[310px] transition-all duration-300 max-lg:fixed z-40 overflow-hidden`}>
                         <Sidebar />
@@ -121,14 +122,14 @@ export default function AppBackground({ children }) {
                     <div onClick={() => hideHistryBar()} className="w-2/3 flex-1 h-full overflow-y-auto pb-6 sm:pb-10">
                         <div>
                             <div className="lg:hidden w-full h-[3.5rem] sm:h-16 flex items-center justify-between px-2 bg-gradient-to-r from-black to-[#003760]">
-                                <div className="w-full h-full flex items-center justify-start gap-1">
+                                <a href='/' className="w-full h-full flex items-center justify-start gap-1">
                                     <div className="h-9 sm:h-10 aspect-square">
                                         <img src="/icon.png" alt="" className="w-full h-full" />
                                     </div>
                                     <div className={`${rubik_vinyl.className} h-auto flex-1 text-[30px] sm:text-[35px] font-bold text-white`}>
                                         DefectLens
                                     </div>
-                                </div>
+                                </a>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation(); // Prevent parent div's onClick from firing

@@ -3,19 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { ChevronDown } from 'lucide-react';
 
-const options = [
-    { short_names: ['line_of_code', 'loc', 'num_line', 'number_of_line'], id_name: 'number_of_lines', display_name: 'Number of Line' },
-    { short_names: ['loc_executable', 'executable_loc'], id_name: 'loc_executable', display_name: 'Total Line of executable Code' },
-    { short_names: ['loc_comment', 'loc_comments', 'comment_loc', 'comments_loc'], id_name: 'loc_comments', display_name: 'Total Line of Comment' },
-    { short_names: ['loc_code_and_comments', 'loc_code_and_comment', 'loc_code_with_comment', 'loc_code_with_comments'], id_name: 'loc_code_and_comments', display_name: 'Total Line of Code with Comment' },
-    { short_names: ['loc_blank', 'loc_blanks', 'blank_loc', 'blanks_loc'], id_name: 'loc_blank', display_name: 'Total Blank Line' },
-    { short_names: ['total_loc', 'loc_total'], id_name: 'loc_total', display_name: 'Total Line of Code' }
-];
-
-const MappingInterface = ({ headers }) => {
+const MappingInterface = ({ headers, mappedSourceFileHeaders, setMappedSourceFileHeaders}) => {
     const [attributes, setAttributes] = useState(headers || []);
     const [providedOption, setProvidedOption] = useState([]);
-    const [mappings, setMappings] = useState({});
     const [activeDropdown, setActiveDropdown] = useState(null);
     const dropdownRef = useRef(null);
 
@@ -24,28 +14,30 @@ const MappingInterface = ({ headers }) => {
             try {
                 const response = await axios.get('http://127.0.0.1:8000/provided-attributes');
                 setProvidedOption(response.data.attributes);
-                setInitialMapping();
             } catch (err) {
                 console.error('Error fetching attributes:', err.message);
             }
         };
 
-        const setInitialMapping = () => {
-            const initialMappings = {};
-            attributes.forEach(attr => {
-                // Check all short_names arrays in options
-                const matchingOption = providedOption.find(opt =>
-                    opt.short_names.includes(attr)
-                );
-                if (matchingOption) {
-                    initialMappings[attr] = matchingOption;
-                }
-            });
-            setMappings(initialMappings);
-        };
-
+        setAttributes(headers);
         fetchAttributes();
-    }, [attributes]);
+    }, [headers]); // Runs only when headers change
+
+    useEffect(() => {
+        if (providedOption.length === 0) return;
+
+        const initialMappings = {};
+        attributes.forEach(attr => {
+            const matchingOption = providedOption.find(opt =>
+                opt.short_names.includes(attr)
+            );
+            if (matchingOption) {
+                initialMappings[attr] = matchingOption;
+            }
+        });
+        setMappedSourceFileHeaders(initialMappings);
+    }, [providedOption, attributes]); // Runs only when `providedOption` and `attributes` change
+
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -63,7 +55,7 @@ const MappingInterface = ({ headers }) => {
     };
 
     const handleSelect = (fieldName, option) => {
-        setMappings(prev => {
+        setMappedSourceFileHeaders(prev => {
             const newMappings = { ...prev };
 
             if (!option) {
@@ -86,9 +78,9 @@ const MappingInterface = ({ headers }) => {
 
     const getAvailableOptions = (fieldName) => {
         return providedOption.filter(option => {
-            const currentMapping = mappings[fieldName];
+            const currentMapping = mappedSourceFileHeaders[fieldName];
             const isCurrentMapping = currentMapping && currentMapping.id_name === option.id_name;
-            const isSelectedElsewhere = Object.values(mappings).some(
+            const isSelectedElsewhere = Object.values(mappedSourceFileHeaders).some(
                 mapping => mapping && mapping.id_name === option.id_name && !isCurrentMapping
             );
             return !isSelectedElsewhere;
@@ -96,8 +88,8 @@ const MappingInterface = ({ headers }) => {
     };
 
     const MappingRow = ({ fieldName }) => (
-        <div className="flex items-center gap-1">
-            <div className="bg-[#a9c5fb7a] rounded-lg px-4 py-2 w-32">
+        <div className="flex items-center gap-1 text-sm sm:text-base 2md:text-sm xl:text-base">
+            <div className="bg-[#a9c5fb7a] rounded-lg p-2 w-32 sm:w-40 2md:w-32 xl:w-40 overflow-x-auto">
                 {fieldName}
             </div>
 
@@ -111,10 +103,10 @@ const MappingInterface = ({ headers }) => {
             <div className="relative flex-grow">
                 <button
                     onClick={() => toggleDropdown(fieldName)}
-                    className="flex items-center justify-between w-full bg-transparent rounded-lg px-4 py-2 border border-gray-200 text-gray-600 hover:bg-gray-50"
+                    className="flex items-center justify-between w-full bg-transparent rounded-lg p-2 border border-gray-200 text-gray-600 hover:bg-gray-50"
                 >
-                    {mappings[fieldName]?.display_name ?
-                        <span className='text-white'>{mappings[fieldName]?.display_name}</span> : <span>Not Mapped</span>
+                    {mappedSourceFileHeaders[fieldName]?.display_name ?
+                        <span className='text-white'>{mappedSourceFileHeaders[fieldName]?.display_name}</span> : <span>Not Mapped</span>
                     }
                     <ChevronDown className="w-4 h-4 text-gray-400" />
                 </button>
@@ -126,7 +118,7 @@ const MappingInterface = ({ headers }) => {
                     >
                         <div className="py-1">
                             <div
-                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                className="p-2 hover:bg-gray-100 cursor-pointer"
                                 onClick={() => handleSelect(fieldName, null)}
                             >
                                 Not Mapped
@@ -134,7 +126,7 @@ const MappingInterface = ({ headers }) => {
                             {getAvailableOptions(fieldName).map((option) => (
                                 <div
                                     key={option.id_name}
-                                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                    className="p-2 hover:bg-gray-100 cursor-pointer"
                                     onClick={() => handleSelect(fieldName, option)}
                                 >
                                     {option.display_name}
