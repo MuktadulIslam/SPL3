@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
@@ -25,9 +25,9 @@ async def root():
     return {"message": "Welcome to the DefectLens application!"}
 
 @app.get("/user_projects")
-async def root():
+async def get_user_projects(user_id: str = Query(..., description="User ID to filter projects")):
     mongoDBHandler = MongoDBHandler()
-    return {"history": list(mongoDBHandler.get_user_projects(user_id="muktadulislam142001@gmail.com"))}
+    return {"history": list(mongoDBHandler.get_user_projects(user_id=user_id))}
 
 
 @app.get("/settings")

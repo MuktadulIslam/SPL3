@@ -54,18 +54,6 @@ const calculateHash = async (file1, file2) => {
 	}
 };
 
-const getIdNameMapping = (headerMapping) => {
-	const mapping = {};
-
-	Object.values(headerMapping).forEach(value => {
-		value.short_names.forEach(shortName => {
-			mapping[shortName] = value.id_name;
-		});
-	});
-
-	return mapping;
-};
-
 
 // Mutation function with cancellation token
 const fetchPredictionData = async ({ formData, endPoint, cancelToken }) => {

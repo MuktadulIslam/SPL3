@@ -24,17 +24,22 @@ export default function Sidebar() {
     const router = useRouter();
 
     useEffect(() => {
-        fetch("http://localhost:8000/user_projects")
-            .then(response => response.json())
-            .then(data => {
-                setPredictions(data.history.reverse().map(item => ({
-                    name: item.project_name,
-                    time: item.submitted_at,
-                    project_hash: item.project_hash
-                })));
-            })
-            .catch(error => console.error("Error fetching prediction history:", error));
-    }, [reloadSideBar]);
+        if (user) {
+            console.log(user.email)
+            fetch(`http://localhost:8000/user_projects?user_id=${encodeURIComponent(user.email)}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.history)
+                    setPredictions(data.history.reverse().map(item => ({
+                        name: item.project_name,
+                        time: item.submitted_at,
+                        project_hash: item.project_hash
+                    })));
+                })
+                .catch(error => console.error("Error fetching prediction history:", error));
+        }
+    }, [reloadSideBar, user]);
+
 
     const handleDoubleClick = (index) => {
         setEditingIndex(index);
